@@ -1,1 +1,1 @@
-# pygame
+# pygame naves y meteoritos
