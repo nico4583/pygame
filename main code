@@ -1,123 +1,164 @@
 import pygame
+from constantes import *
 import random
 
-posImag = [0, 0]
-
+posicion_imagen = (0,0)
 pygame.init()
 
-WIDTH, HEIGHT = 800, 600
+def dibujar_texto(surface, texto, fuente, x, y):
+    fuente = pygame.font.SysFont("Arial", 30)
+    texto_surface = fuente.render(texto, True, COLOR_BLANCO)
+    texto_rect = texto_surface.get_rect()
+    texto_rect.midtop = (x, y)
+    surface.blit(texto_surface, texto_rect)
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Esquiva al enemigo")
+def dibujar_vida(surface, x, y, porcentaje):
+    barra_vida_largo = 100
+    barra_vida_alto = 10
+    cantidad_vida = (porcentaje / 100) * barra_vida_largo
+    borde = pygame.Rect(x, y, barra_vida_largo, barra_vida_alto)
+    cantidad_vida = pygame.Rect(x, y, cantidad_vida, barra_vida_alto)
+    pygame.draw.rect(surface, COLOR_VERDE, cantidad_vida)
+    pygame.draw.rect(surface, COLOR_BLANCO, borde, 2)
 
-imagen_pj = pygame.image.load("descarga.png")
-imagen_pj = pygame.transform.scale(imagen_pj,(60,60))
+def agregar_ememigos():
+    all_sprites.add(enemigo)
+    enemigos_lista.add(enemigo)
 
+class Nave(pygame.sprite.Sprite):
+    def __init__(self) -> None:
+        super().__init__()
+        self.image = pygame.image.load("Imagenes/1.png")
+        self.image = pygame.transform.scale(self.image, (50,50))
+        self.rect = self.image.get_rect()
+        self.rect.centerx = ANCHO_VENTANA // 2
+        self.rect.bottom = ALTO_VENTANA - 10
+        self.speed_x = 0
+        self.vida = 100
 
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)  
+    def update(self):
+        self.speed_x = 0
+        mouse = pygame.key.get_pressed()
+        if mouse[pygame.K_LEFT]:
+            self.speed_x = -10
+            self.rect.x += self.speed_x
+        if mouse[pygame.K_RIGHT]:
+            self.speed_x = 10
+            self.rect.x += self.speed_x
+        if self.rect.right > ANCHO_VENTANA:
+            self.rect.right = ANCHO_VENTANA
+        if self.rect.left < 0:
+            self.rect.left = 0
 
+    def disparar(self):
+        laser = Laser(self.rect.centerx, self.rect.top)
+        all_sprites.add(laser)
+        laser_lista.add(laser)
 
+class Enemigos(pygame.sprite.Sprite):
+    def __init__(self) -> None:
+        super().__init__()
+        self.image = random.choice(enemigos_images) 
+        self.image = pygame.transform.scale(self.image, (50,50))
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randrange(ANCHO_VENTANA - self.rect.width)
+        self.rect.y = random.randrange(-220,-40)
+        self.speed_y = random.randrange(1,10)
+        self.speed_x = random.randrange(-5,5)    
 
-player_size = 50
-player_x = (WIDTH - player_size) // 2
-player_y = HEIGHT - 2 * player_size         
-player_speed = 10
+    def update(self):
+        self.rect.y += self.speed_y
+        self.rect.x += self.speed_x
+        if self.rect.top > ALTO_VENTANA + 10 or self.rect.left < -30 or self.rect.right > ANCHO_VENTANA + 30:
+            self.rect.x = random.randrange(ANCHO_VENTANA - self.rect.width)
+            self.rect.y = random.randrange(-140,-40)
+            self.speed_y = random.randrange(1,10)
 
-enemy_size = 50
-enemy_x = random.randint(0, WIDTH - enemy_size)
-enemy_y = 0
-enemy_speed = 15
+class Laser(pygame.sprite.Sprite):
+    def __init__(self, x, y) -> None:
+        super().__init__()
+        self.image = pygame.image.load("Imagenes/laser.png")
+        self.rect = self.image.get_rect()
+        self.rect.y = y
+        self.rect.centerx = x
+        self.speed_y = -10
+    
+    def update(self):
+        self.rect.y += self.speed_y
+        if self.rect.bottom < 0:
+            self.kill()
 
-enemy_size2 = 50
-enemy_x2 = random.randint(0, WIDTH - enemy_size)
-enemy_y2 = 0
-enemy_speed2 = 15
+pantalla = pygame.display.set_mode((ANCHO_VENTANA,ALTO_VENTANA)) 
+pygame.display.set_caption("GALAGA") 
 
+fondo = pygame.image.load("Imagenes/91655.jpg") 
+fondo = pygame.transform.scale(fondo,(ANCHO_VENTANA,ALTO_VENTANA))
 
-bullet_speed = 20
-
-clock =  pygame.time.Clock()
-
+clock = pygame.time.Clock()
 score = 0
 
-running = True
-bullets = [] 
 
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+enemigos_images = []
+enemigos_lista = ["Imagenes/Enemigo.png"]
+for img in enemigos_lista:
+    enemigos_images.append(pygame.image.load(img))
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
+
+all_sprites = pygame.sprite.Group()
+enemigos_lista = pygame.sprite.Group()
+laser_lista = pygame.sprite.Group()
+
+
+nave = Nave()
+all_sprites.add(nave)
+
+
+for i in range(10):
+    enemigo = Enemigos()
+    agregar_ememigos()
+
+
+flag_correr = True
+while flag_correr:
+    clock.tick(60)
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            flag_correr = False
+
+        elif evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_SPACE:
+                nave.disparar()
+
+    all_sprites.update()
+
+    hits = pygame.sprite.groupcollide(enemigos_lista, laser_lista, True, True)
+    for hit in hits:
+        enemigo = Enemigos()
+        agregar_ememigos()
+        score += 10
+
+
+    hits = pygame.sprite.spritecollide(nave, enemigos_lista, True)
+    for hit in hits:
+        nave.vida -= 25 # Le voy restando de a 25 la vida de la nave.
+        agregar_ememigos()
+
+        if nave.vida <= 0:
+            flag_correr = False
+            print("¡MORISTE!")
             
-                bullet = pygame.Rect(player_x + player_size // 2, player_y, 5, 10)
-                bullets.append(bullet)
+    pantalla.blit(fondo, (posicion_imagen))
 
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and player_x > 0:
-        player_x -= player_speed
-    if keys[pygame.K_RIGHT] and player_x < WIDTH - player_size:
-        player_x += player_speed
+    all_sprites.draw(pantalla)
 
-    enemy_y += enemy_speed
-    enemy_y2 += enemy_speed2
 
-    if player_x < enemy_x + enemy_size and player_x + player_size > enemy_x:
-        if player_y < enemy_y + enemy_size and player_y + player_size > enemy_y:
-            print("¡Colisión!")
-            running = False
+    dibujar_texto(pantalla, str(score), 25, ANCHO_VENTANA // 2, 10)
 
-    if player_x < enemy_x2 + enemy_size2 and player_x + player_size > enemy_x2:
-        if player_y < enemy_y2 + enemy_size2 and player_y + player_size > enemy_y2:
-            print("¡Colisión!")
-            running = False
 
-    screen.fill(WHITE)
+    dibujar_vida(pantalla, 5, 5, nave.vida)
 
-    
-    for bullet in bullets:
-        pygame.draw.rect(screen, BLUE, bullet)  
-        bullet.y -= bullet_speed  
+    pygame.display.flip() #Va actualizando la pagina
 
-        if bullet.y < 0: 
-            bullets.remove(bullet)
+pygame.quit()   
 
-        if bullet.colliderect((enemy_x, enemy_y, enemy_size, enemy_size)):
-            bullets.remove(bullet)
-            enemy_x = random.randint(0, WIDTH - enemy_size)
-            enemy_y = 0
-            score += 1
-
-        if bullet.colliderect((enemy_x2, enemy_y2, enemy_size2, enemy_size2)):
-            bullets.remove(bullet)
-            enemy_x2 = random.randint(0, WIDTH - enemy_size2)
-            enemy_y2 = 0
-            score += 1
-
-    pygame.draw.rect(screen, RED, (player_x, player_y, player_size, player_size))
-    pygame.draw.rect(screen, RED, (enemy_x, enemy_y, enemy_size, enemy_size))
-    pygame.draw.rect(screen, RED, (enemy_x2, enemy_y2, enemy_size2, enemy_size2))             
-
-    screen.blit(imagen_pj,(player_x, player_y, player_size, player_size))
-    imagen_pj.set_colorkey(WHITE)
-
-    pygame.display.update()
-
-    clock.tick(30)
-
-    if enemy_y > HEIGHT:
-        enemy_x = random.randint(0, WIDTH - enemy_size)
-        enemy_y = 0
-        score += 1
-
-    if enemy_y2 > HEIGHT:
-        enemy_x2 = random.randint(0, WIDTH - enemy_size2)
-        enemy_y2 = 0
-        score += 1
-
-print("Puntuación final:", score)
-pygame.quit() 
 
