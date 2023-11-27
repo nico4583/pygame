@@ -1,0 +1,24 @@
+import pygame
+from constantes import *
+import random
+
+class Enemigos(pygame.sprite.Sprite):
+    def __init__(self, enemigos_images, nivel_actual, escala_enemigos) -> None:
+        super().__init__()
+        self.nivel = nivel_actual
+        self.image = random.choice(enemigos_images) 
+        self.image = pygame.transform.scale(self.image, escala_enemigos)
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randrange(ANCHO_VENTANA - self.rect.width)
+        self.rect.y = random.randrange(-200,-40)
+        self.speed_y = random.randrange(1,5) * nivel_actual 
+        self.speed_x = random.randrange(-5,5)  * nivel_actual   
+
+    def update(self):
+        self.rect.y += self.speed_y
+        self.rect.x += self.speed_x
+        if self.rect.top > ALTO_VENTANA + 10 or self.rect.left < -30 or self.rect.right > ANCHO_VENTANA + 30:
+            self.rect.x = random.randrange(ANCHO_VENTANA - self.rect.width)
+            self.rect.y = random.randrange(-140,-40)
+            self.speed_y = random.randrange(1,10) * self.nivel
+            self.speed_x = random.randrange(-5,5)  * self.nivel
