@@ -1,0 +1,35 @@
+import sqlite3
+
+NOMBRE_BASE_DE_DATOS = "data_ranking.db"
+
+def crear_tablas_db():
+    try:
+        conexion = sqlite3.connect(NOMBRE_BASE_DE_DATOS)
+        conexion.execute('''CREATE TABLE IF NOT EXISTS jugadores (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ingreso TEXT,
+                        score INTEGER
+                    )''')
+        conexion.close()
+    except sqlite3.OperationalError:
+        print("La tabla personajes ya existe")
+
+def insertar_jugadores(ingreso, score):
+    try:
+        conexion = sqlite3.connect(NOMBRE_BASE_DE_DATOS)
+        print("Conexión exitosa a la base de datos")
+        conexion.execute("INSERT INTO jugadores (ingreso, score) VALUES (?,?)", (ingreso, score))
+        conexion.commit()
+        conexion.close()
+        
+    except sqlite3.Error as e:
+        print(f"Error al insertar jugadores: {e}")
+
+def obtener_ranking():
+    try:
+        conexion = sqlite3.connect(NOMBRE_BASE_DE_DATOS)
+        cursor = conexion.execute("SELECT ingreso, score FROM jugadores ORDER BY score DESC")
+        ranking = cursor.fetchall()
+        return ranking
+    except:
+        print("Error")
